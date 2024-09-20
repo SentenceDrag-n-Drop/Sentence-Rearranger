@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop Sentence Rearranger</title>
+    <style>
+        .draggable {
+            cursor: move;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            display: block;
+        }
+        .paragraph {
+            margin-top: 20px; /* Adds extra space between paragraphs */
+            border-top: 2px solid #333; /* Paragraph separation remains */
+            padding-top: 10px;
+        }
+        #output {
+            min-height: 100px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            padding: 10px;
+            white-space: pre-wrap; /* Keeps paragraphs intact */
+        }
+        .drop-line {
+            height: 2px;
+            background-color: black;
+            margin: 5px 0;
+            display: none; /* Hidden initially */
+        }
+    </style>
+</head>
+<body>
+
+<h2>Rearrange Sentences</h2>
+
+<textarea id="inputText" rows="10" cols="80" placeholder="Paste your essay here..."></textarea>
+<br>
+<button onclick="splitSentences()">Split into Sentences</button>
+<div id="sentenceContainer"></div>
+
+<h3>Rearranged Text</h3>
+<div id="output"></div>
+<button onclick="combineSentences()">Combine</button>
+
+<script>
+    let sentences = [];
+
+    function splitSentences() {
+        const text = document.getElementById('inputText').value;
+
+        // Split by paragraph first
+        const paragraphs = text.split(/\n\s*\n/); // Splits by empty lines (paragraph breaks)
+
+        const sentenceContainer = document.getElementById('sentenceContainer');
+        sentenceContainer.innerHTML = '';  // Clear previous content
+
+        paragraphs.forEach((paragraph, paragraphIndex) => {
+            // Split the paragraph into sentences
+            const paragraphSentences = paragraph.match(/[^.!?]+[.!?]+/g) || [];
+
+            // Create a container for each paragraph
+            const paragraphDiv = document.createElement('div');
+            paragraphDiv.classList.add('paragraph');
+
+            paragraphSentences.forEach((sentence, index) => {
+                const span = document.createElement('span');
+                span.classList.add('draggable');
+                span.draggable = true;
+                span.textContent = sentence.trim();
+                span.id = `sentence-${paragraphIndex}-${index}`;
+
+                // Drag and Drop Events
+                span.addEventListener('dragstart', dragStart);
+                span.addEventListener('dragover', dragOver);
+                span.addEventListener('dragleave', dragLeave); // Hide drop line when leaving
+                span.addEventListener('drop', drop);
+
+                paragraphDiv.appendChild(span);
+
+                // Add the drop-line indicator
+                const dropLine = document.createElement('div');
+                dropLine.classList.add('drop-line');
+                paragraphDiv.appendChild(dropLine);
+            });
+
+            sentenceContainer.appendChild(paragraphDiv);
+        });
+    }
+
+    function dragStart(event) {
+        event.dataTransfer.setData('text/plain', event.target.id);
+    }
+
+    function dragOver(event) {
+        event.preventDefault();
+        const targetElement = event.target;
+
+        // Only show the drop line while dragging
+        const dropLine = targetElement.nextElementSibling;
+        if (dropLine && dropLine.classList.contains('drop-line')) {
+            dropLine.style.display = 'block';  // Show the drop line when dragging
+        }
+    }
+
+    function dragLeave(event) {
+        const targetElement = event.target;
+        const dropLine = targetElement.nextElementSibling;
+
+        if (dropLine && dropLine.classList.contains('drop-line')) {
+            dropLine.style.display = 'none';  // Hide the drop line when drag leaves the area
+        }
+    }
+
+    function drop(event) {
+        event.preventDefault();
+        const draggedId = event.dataTransfer.getData('text/plain');
+        const draggedElement = document.getElementById(draggedId);
+
+        const targetElement = event.target;
+        const dropLine = targetElement.nextElementSibling;
+
+        // Hide the drop line once dropped
+        if (dropLine && dropLine.classList.contains('drop-line')) {
+            dropLine.style.display = 'none';
+        }
+
+        // Drop the sentence after the target sentence
+        if (targetElement.classList.contains('draggable')) {
+            targetElement.parentNode.insertBefore(draggedElement, targetElement.nextSibling);
+        }
+    }
+
+    function combineSentences() {
+        const sentenceContainer = document.getElementById('sentenceContainer');
+        let paragraphs = Array.from(sentenceContainer.getElementsByClassName('paragraph')).map(paragraphDiv => {
+            // Join the sentences back together within each paragraph
+            return Array.from(paragraphDiv.getElementsByClassName('draggable'))
+                .map(span => span.textContent).join(' ');
+        });
+        // Join the paragraphs with two new lines between them to maintain paragraph structure
+        document.getElementById('output').textContent = paragraphs.join('\n\n');
+    }
+</script>
+
+</body>
+</html>
